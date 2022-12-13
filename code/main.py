@@ -95,7 +95,7 @@ def wait_until_complete(driver):
         time.sleep(0.5)
     return driver
     
-t_agent = telegram_agent.Telegram_agent("./token.yaml")
+t_agent = Telegram_agent("./token.yaml")
 t_agent.updater.dispatcher.add_handler(CommandHandler("last", send_last))
 
 image_path = "screenshot.png"
