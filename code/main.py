@@ -10,7 +10,7 @@ import pyotp
 import re
 from selenium.webdriver.chrome.options import Options
 import chromedriver_binary
-
+import os
 import telegram
 from telegram.ext import Updater, CommandHandler
 import yaml
@@ -95,10 +95,14 @@ def wait_until_complete(driver):
         time.sleep(0.5)
     return driver
     
-t_agent = Telegram_agent("./token.yaml")
+dir_path = os.path.dirname(os.path.realpath(__file__))
+   
+
+    
+t_agent = Telegram_agent(os.path.join(dir_path, "token.yaml"))
 t_agent.updater.dispatcher.add_handler(CommandHandler("last", send_last))
 
-image_path = "screenshot.png"
+image_path = os.path.join(dir_path, "screenshot.png")
 
 def send_last():
     if os.path.isfile(image_path):
