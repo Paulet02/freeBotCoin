@@ -97,18 +97,18 @@ def wait_until_complete(driver):
     
 dir_path = os.path.dirname(os.path.realpath(__file__))
    
-
+def send_last():
+    if os.path.isfile(image_path):
+        t_agent.send_image(image_path, t_agent.chat_id[0])
+    else:
+        t_agent.send_message("No image")
     
 t_agent = Telegram_agent(os.path.join(dir_path, "token.yaml"))
 t_agent.updater.dispatcher.add_handler(CommandHandler("last", send_last))
 
 image_path = os.path.join(dir_path, "screenshot.png")
 
-def send_last():
-    if os.path.isfile(image_path):
-        t_agent.send_image(image_path, t_agent.chat_id[0])
-    else:
-        t_agent.send_message("No image")
+
         
 
 def do_macro(data):
