@@ -152,7 +152,7 @@ def do_macro(data):
         ActionChains(driver).move_to_element(element).perform() 
         element.click()#click on it
     except:
-        pass
+        print("No hay pop up")
     
     
     #finding the password input element
@@ -166,7 +166,7 @@ def do_macro(data):
         ActionChains(driver).move_to_element(element).perform() 
         element.click()#click on it
     except:
-        pass
+        print("No hay pop up")
     
     #finding the 2fa input element if enable
     if second_factor:
@@ -180,7 +180,7 @@ def do_macro(data):
         ActionChains(driver).move_to_element(element).perform() 
         element.click()#click on it
     except:
-        pass
+        print("No hay pop up")
     
     #finding the login button
     element = WebDriverWait(driver, 30).until(expected_conditions.element_to_be_clickable((By.XPATH, '//button[@id="login_button"][@class="new_button_style profile_page_button_style center"][text()="LOGIN!"]')))
@@ -188,8 +188,8 @@ def do_macro(data):
     element.click()#click on it
     try:
         element.click()
-    except:
-        pass
+    except Exception as e:
+        print(e)
     
     #(EC.staleness_of(login))
     
@@ -215,8 +215,8 @@ def do_macro(data):
         element = wait.until(expected_conditions.element_to_be_clickable((By.XPATH, '//div[text()="NO THANKS"]'))) 
         ActionChains(driver).move_to_element(element).perform() 
         element.click()#click on it
-    except:
-        pass
+    except Exception as e:
+        print(e)
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")#scroll to bottom
     
     #if hay captcha y no esta la cuenta atras, entonces lo llamas
@@ -275,4 +275,5 @@ while 0:
     try:
         do_macro(data)
     except Exception as e:
-        t_agent.send_message(e)
+        print(e)
+        t_agent.send_message(str(e))
