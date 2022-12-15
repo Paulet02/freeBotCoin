@@ -1,6 +1,4 @@
-selenium 
 pyotp
 numpy
-chromedriver_binary
 python-telegram-bot==12.3.0
 pyyaml==5.3

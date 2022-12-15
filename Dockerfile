@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.8
 
 # install google chrome
 RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
@@ -18,8 +18,11 @@ ENV DISPLAY=:99
 RUN pip install --upgrade pip
 
 # install selenium
+RUN pip install selenium
+
 RUN cd /root/
 COPY ./code /root/freeBotCoin
+
 RUN cd /root/freeBotCoin && \
     pip3 install -r requirements.txt 
 	

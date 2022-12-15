@@ -9,11 +9,11 @@ import numpy.random as npr
 import pyotp
 import re
 from selenium.webdriver.chrome.options import Options
-import chromedriver_binary
 import os
 import telegram
 from telegram.ext import Updater, CommandHandler
 import yaml
+import pickle
 
 class Telegram_agent:
     token = None
@@ -60,7 +60,7 @@ class Telegram_agent:
 
 data = {"email":"snowman.informer.19@gmail.com", "pass":"FreebitcoinSnowman2", "key2fa":"DWHL3F25MIYIVEKH", "ip":"188.6.197.119", "port":"39364"}
 
-def time_remaining(driver):#añadir funcionalidad de equivocarse
+'''def time_remaining(driver):#añadir funcionalidad de equivocarse
     try:
         element = driver.find_element(By.XPATH, '//div[@id="time_remaining"][@class="hasCountdown"]/span[@class="countdown_row countdown_show2"]/span[@class="countdown_section"][text()="Minutes"]/span[@class="countdown_amount"]')
         time_remaining = int(element.text)*60
@@ -68,7 +68,7 @@ def time_remaining(driver):#añadir funcionalidad de equivocarse
         time_remaining = time_remaining + int(element.text)
     except:
         time_remaining = 0
-    return time_remaining
+    return time_remaining'''
     
 #Keys.BACKSPACE to delete character before the cursor
 #Keys.DELETE to delete character after the cursor
@@ -95,49 +95,52 @@ def wait_until_complete(driver):
         time.sleep(0.5)
     return driver
     
+    
+global dir_path
+global image_path
 dir_path = os.path.dirname(os.path.realpath(__file__))
+image_path = os.path.join(dir_path, "screenshot.png")
+cookies_path = os.path.join(dir_path, "cookies.pkl")
    
-def send_last():
+   
+time_remaining = 0
+
+def wait_seconds(seconds):
+    global time_remaining
+    time_remaining = seconds
+    while time_remaining > 0:
+        time.sleep(1)
+        time_remaining = time_remaining - 1
+    
+t_agent = Telegram_agent(os.path.join(dir_path, "token.yaml"))
+
+send_price = lambda update, context: t_agent.send_message("El ultimo precio ha sido:")
+t_agent.updater.dispatcher.add_handler(CommandHandler("last_price", send_price))
+
+send_time = lambda update, context: t_agent.send_message(str(time_remaining)+" seconds left")
+t_agent.updater.dispatcher.add_handler(CommandHandler("time", send_time))
+
+def send_last(update, context):
     if os.path.isfile(image_path):
         t_agent.send_image(image_path, t_agent.chat_id[0])
     else:
         t_agent.send_message("No image")
-    
-t_agent = Telegram_agent(os.path.join(dir_path, "token.yaml"))
-t_agent.updater.dispatcher.add_handler(CommandHandler("last", send_last))
 
-image_path = os.path.join(dir_path, "screenshot.png")
+t_agent.updater.dispatcher.add_handler(CommandHandler("last_screenshot", send_last))
 
 
-        
 
-def do_macro(data):
-    #setting up
-    #data -> second_factor ->key2fa
+def login(driver):
     if data['key2fa']:
         second_factor = True
         totp = pyotp.TOTP(data['key2fa'])
-
-    options = Options()
-    options.headless = True
-    options.add_argument("--window-size=1920,1080")
-    
-    #driver = webdriver.Firefox(options = options, executable_path = path_geckodriver, capabilities = set_proxy_firefox(data['ip'], data['port']))
-    driver = webdriver.Chrome(options = options)
-    
-    #profile = webdriver.FirefoxProfile()
-    #driver = webdriver.Firefox(executable_path = path_geckodriver)
-    
-    url2="https://freebitco.in/?op=signup_page"
-    driver.get(url2)#web page url
-    driver = wait_until_complete(driver)
-    
-    #hacer funcion que dada una cadena de un elemento te de el xpath pj <input name="continue" type="submit" value="Login" />
-    #element = driver.find_element(By.XPATH, '//li[@class="login_menu_button"]/a[text()="LOGIN"]')
-    time.sleep(2)
-    driver.get_screenshot_as_file("screenshot.png")
+        
+        
     element = WebDriverWait(driver, 30, poll_frequency=1).until(expected_conditions.element_to_be_clickable((By.XPATH, '//li[@class="login_menu_button"]/a[text()="LOGIN"]')))#find the login tab
     element.click()#click on it
+    
+    driver.get_screenshot_as_file(image_path)
+    t_agent.send_image(image_path, t_agent.chat_id[0])
     
     
     #finding the username input element
@@ -190,6 +193,66 @@ def do_macro(data):
         element.click()
     except Exception as e:
         print(e)
+    time.sleep(2)
+    driver.get_screenshot_as_file(image_path)
+    t_agent.send_image(image_path, t_agent.chat_id[0])
+    
+    return driver
+
+def setup():
+
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument('--ignore-certificate-errors')
+    driver = webdriver.Chrome(options=chrome_options)
+    driver.implicitly_wait(10)
+    
+    return driver
+        
+
+def store_cookies(driver):
+    pickle.dump( driver.get_cookies() , open(cookies_path,"wb"))
+    
+def load_cookies(driver):
+    cookies = pickle.load(open(cookies_path, "rb"))
+    for cookie in cookies:
+        driver.add_cookie(cookie)
+        
+    return driver
+
+def do_macro(data, driver):
+    #setting up
+    #data -> second_factor ->key2fa
+    
+
+    
+    
+    
+    print("Driver created")
+    
+    #driver = webdriver.Firefox(options = options, executable_path = path_geckodriver, capabilities = set_proxy_firefox(data['ip'], data['port']))
+
+    
+    #profile = webdriver.FirefoxProfile()
+    #driver = webdriver.Firefox(executable_path = path_geckodriver)
+    
+    #url2="https://freebitco.in/?op=signup_page"
+    #driver.get(url2)#web page url
+    #driver = wait_until_complete(driver)
+    
+    #hacer funcion que dada una cadena de un elemento te de el xpath pj <input name="continue" type="submit" value="Login" />
+    #element = driver.find_element(By.XPATH, '//li[@class="login_menu_button"]/a[text()="LOGIN"]')
+    time.sleep(2)
+    
+    
+    print("Dentro")
+    driver.get_screenshot_as_file(image_path)
+    #t_agent.send_image(image_path, t_agent.chat_id[0])
+    
     
     #(EC.staleness_of(login))
     
@@ -201,12 +264,18 @@ def do_macro(data):
     #print(error_too_many_tries(driver))
     
     time.sleep(1)
-    #in homepage find the free roll button
-    wait = WebDriverWait(driver, 30)
-    element = wait.until(expected_conditions.element_to_be_clickable((By.XPATH, '//a[@class="free_play_link"][text()="FREE BTC"]'))) 
-    ActionChains(driver).move_to_element(element).perform() 
-    element.click()#click on it
+    try:
+        #in homepage find the free roll button
+        wait = WebDriverWait(driver, 30)
+        element = wait.until(expected_conditions.element_to_be_clickable((By.XPATH, '//a[@class="free_play_link"][text()="FREE BTC"]'))) 
+        ActionChains(driver).move_to_element(element).perform() 
+        element.click()#click on it
+    except Exception as e:
+        print(e)
     
+    print("Free play link")
+    driver.get_screenshot_as_file(image_path)
+    #t_agent.send_image(image_path, t_agent.chat_id[0])
     #time.sleep(3)
     
     #close the "no thanks" popup
@@ -236,17 +305,19 @@ def do_macro(data):
     ActionChains(driver).move_to_element(element).perform() 
     element.click()#click on it
     
-    
-    driver.save_screenshot("screenshot.png")
+    time.sleep(3)
+    print("Done")
+    driver.get_screenshot_as_file(image_path)
+    t_agent.send_image(image_path, t_agent.chat_id[0])
     #element = driver.find_element(By.XPATH, '//button[@class="new_button_style red_button_big homepage_play_now_button"][text()="PLAY NOW"]')
     
-    time.sleep(2)
-    time_sleep = time_remaining(driver)
-    t_agent.send_message("Waiting " +str(time_sleep))
+    #time.sleep(2)
+    #time_sleep = time_remaining(driver)
+    #t_agent.send_message("Waiting " +str(time_sleep))
     
-    time.sleep(time_sleep)
-    time.sleep(npr.randint(1,10))
-    driver.close()
+    #time.sleep(time_sleep)
+    #time.sleep(npr.randint(1,10))
+    #driver.close()
     
     '''
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")#scroll to bottom
@@ -269,11 +340,54 @@ def do_macro(data):
     
 data = {"email":"snowman.informer.19@gmail.com", "pass":"FreebitcoinSnowman2", "key2fa":"DWHL3F25MIYIVEKH", "ip":"188.6.197.119", "port":"39364"}
 
-t_agent.send_message("Starting...")
 
-while 0:
+t_agent.send_message("Starting...")
+print("Starting...")
+
+t_agent.updater.start_polling()
+
+#driver = setup()
+
+#url = "https://freebitco.in/?op=signup_page"
+#driver.get(url)#web page url
+#time.sleep(1)
+
+#if os.path.isfile(cookies_path):
+#    print("Cookies")
+#    url = "https://freebitco.in/?op=signup_page"
+#    driver.get(url)#web page url
+#    driver = load_cookies(driver)
+#    driver.get(url)#web page url
+#else:
+#    print("logged in")
+#    driver = login(driver)
+
+#close pop up
+
+#time.sleep(2)
+#driver.get_screenshot_as_file(image_path)
+#t_agent.send_image(image_path, t_agent.chat_id[0])
+
+
+wait_seconds(60*60)
+while 1:
     try:
-        do_macro(data)
+        driver = setup()
+        time.sleep(1)
+        if os.path.isfile(cookies_path):
+            print("Cookies")
+            url = "https://freebitco.in/?op=signup_page"
+            driver.get(url)#web page url
+            driver = load_cookies(driver)
+            driver.get(url)#web page url
+        else:
+            print("logged in")
+            driver = login(driver)
+        do_macro(data, driver)
+        t_agent.send_message("Waiting " +str(60*60)+" seconds")
+        wait_seconds(60*60)
     except Exception as e:
         print(e)
+        
+        t_agent.send_message("Problema en el main")
         t_agent.send_message(str(e))
